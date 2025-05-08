@@ -28,7 +28,7 @@ var (
 
 func promClientFromContext(ctx context.Context, uid string) (promv1.API, error) {
 	// First check if the datasource exists
-	_, err := getDatasourceByUID(ctx, GetDatasourceByUIDParams{UID: uid})
+	datasource, err := getDatasourceByUID(ctx, GetDatasourceByUIDParams{UID: uid, Type: DataSourceTypePrometheus})
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func promClientFromContext(ctx context.Context, uid string) (promv1.API, error) 
 		apiKey                 = mcpgrafana.GrafanaAPIKeyFromContext(ctx)
 		accessToken, userToken = mcpgrafana.OnBehalfOfAuthFromContext(ctx)
 	)
-	url := fmt.Sprintf("%s/api/datasources/proxy/uid/%s", strings.TrimRight(grafanaURL, "/"), uid)
+	url := fmt.Sprintf("%s/api/datasources/proxy/uid/%s", strings.TrimRight(grafanaURL, "/"), datasource.UID)
 	rt := api.DefaultRoundTripper
 	if accessToken != "" && userToken != "" {
 		rt = config.NewHeadersRoundTripper(&config.Headers{
@@ -68,7 +68,7 @@ func promClientFromContext(ctx context.Context, uid string) (promv1.API, error) 
 }
 
 type ListPrometheusMetricMetadataParams struct {
-	DatasourceUID  string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID  string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	Limit          int    `json:"limit" jsonschema:"description=The maximum number of metrics to return"`
 	LimitPerMetric int    `json:"limitPerMetric" jsonschema:"description=The maximum number of metrics to return per metric"`
 	Metric         string `json:"metric" jsonschema:"description=The metric to query"`
@@ -99,7 +99,7 @@ var ListPrometheusMetricMetadata = mcpgrafana.MustTool(
 )
 
 type QueryPrometheusParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	Expr          string `json:"expr" jsonschema:"required,description=The PromQL expression to query"`
 	StartRFC3339  string `json:"startRfc3339" jsonschema:"required,description=The start time in RFC3339 format"`
 	EndRFC3339    string `json:"endRfc3339,omitempty" jsonschema:"description=The end time in RFC3339 format. Required if queryType is 'range'\\, ignored if queryType is 'instant'"`
@@ -161,7 +161,7 @@ var QueryPrometheus = mcpgrafana.MustTool(
 )
 
 type ListPrometheusMetricNamesParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	Regex         string `json:"regex" jsonschema:"description=The regex to match against the metric names"`
 	Limit         int    `json:"limit,omitempty" jsonschema:"description=The maximum number of results to return"`
 	Page          int    `json:"page,omitempty" jsonschema:"description=The page number to return"`
@@ -275,7 +275,7 @@ func (s Selector) Matches(lbls labels.Labels) (bool, error) {
 }
 
 type ListPrometheusLabelNamesParams struct {
-	DatasourceUID string     `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string     `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	Matches       []Selector `json:"matches,omitempty" jsonschema:"description=Optionally\\, a list of label matchers to filter the results by"`
 	StartRFC3339  string     `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the time range to filter the results by"`
 	EndRFC3339    string     `json:"endRfc3339,omitempty" jsonschema:"description=Optionally\\, the end time of the time range to filter the results by"`
@@ -330,7 +330,7 @@ var ListPrometheusLabelNames = mcpgrafana.MustTool(
 )
 
 type ListPrometheusLabelValuesParams struct {
-	DatasourceUID string     `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string     `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	LabelName     string     `json:"labelName" jsonschema:"required,description=The name of the label to query"`
 	Matches       []Selector `json:"matches,omitempty" jsonschema:"description=Optionally\\, a list of selectors to filter the results by"`
 	StartRFC3339  string     `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the query"`

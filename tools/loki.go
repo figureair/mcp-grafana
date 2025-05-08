@@ -45,7 +45,7 @@ type Stats struct {
 
 func newLokiClient(ctx context.Context, uid string) (*Client, error) {
 	// First check if the datasource exists
-	_, err := getDatasourceByUID(ctx, GetDatasourceByUIDParams{UID: uid})
+	datasource, err := getDatasourceByUID(ctx, GetDatasourceByUIDParams{UID: uid, Type: DataSourceTypeLoki})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func newLokiClient(ctx context.Context, uid string) (*Client, error) {
 		apiKey                 = mcpgrafana.GrafanaAPIKeyFromContext(ctx)
 		accessToken, userToken = mcpgrafana.OnBehalfOfAuthFromContext(ctx)
 	)
-	url := fmt.Sprintf("%s/api/datasources/proxy/uid/%s", strings.TrimRight(grafanaURL, "/"), uid)
+	url := fmt.Sprintf("%s/api/datasources/proxy/uid/%s", strings.TrimRight(grafanaURL, "/"), datasource.UID)
 
 	client := &http.Client{
 		Transport: &authRoundTripper{
@@ -193,7 +193,7 @@ func (rt *authRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 
 // ListLokiLabelNamesParams defines the parameters for listing Loki label names
 type ListLokiLabelNamesParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	StartRFC3339  string `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the query in RFC3339 format (defaults to 1 hour ago)"`
 	EndRFC3339    string `json:"endRfc3339,omitempty" jsonschema:"description=Optionally\\, the end time of the query in RFC3339 format (defaults to now)"`
 }
@@ -226,7 +226,7 @@ var ListLokiLabelNames = mcpgrafana.MustTool(
 
 // ListLokiLabelValuesParams defines the parameters for listing Loki label values
 type ListLokiLabelValuesParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	LabelName     string `json:"labelName" jsonschema:"required,description=The name of the label to retrieve values for (e.g. 'app'\\, 'env'\\, 'pod')"`
 	StartRFC3339  string `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the query in RFC3339 format (defaults to 1 hour ago)"`
 	EndRFC3339    string `json:"endRfc3339,omitempty" jsonschema:"description=Optionally\\, the end time of the query in RFC3339 format (defaults to now)"`
@@ -351,7 +351,7 @@ func (c *Client) fetchLogs(ctx context.Context, query, startRFC3339, endRFC3339 
 
 // QueryLokiLogsParams defines the parameters for querying Loki logs
 type QueryLokiLogsParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	LogQL         string `json:"logql" jsonschema:"required,description=The LogQL query to execute against Loki. This can be a simple label matcher or a complex query with filters\\, parsers\\, and expressions. Supports full LogQL syntax including label matchers\\, filter operators\\, pattern expressions\\, and pipeline operations."`
 	StartRFC3339  string `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the query in RFC3339 format"`
 	EndRFC3339    string `json:"endRfc3339,omitempty" jsonschema:"description=Optionally\\, the end time of the query in RFC3339 format"`
@@ -495,7 +495,7 @@ func (c *Client) fetchStats(ctx context.Context, query, startRFC3339, endRFC3339
 
 // QueryLokiStatsParams defines the parameters for querying Loki stats
 type QueryLokiStatsParams struct {
-	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=The UID of the datasource to query"`
+	DatasourceUID string `json:"datasourceUid" jsonschema:"required,description=Optionally\\, The UID of the datasource to query. If you don't know\\, set to empty"`
 	LogQL         string `json:"logql" jsonschema:"required,description=The LogQL matcher expression to execute. This parameter only accepts label matcher expressions and does not support full LogQL queries. Line filters\\, pattern operations\\, and metric aggregations are not supported by the stats API endpoint. Only simple label selectors can be used here."`
 	StartRFC3339  string `json:"startRfc3339,omitempty" jsonschema:"description=Optionally\\, the start time of the query in RFC3339 format"`
 	EndRFC3339    string `json:"endRfc3339,omitempty" jsonschema:"description=Optionally\\, the end time of the query in RFC3339 format"`

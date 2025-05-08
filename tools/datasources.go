@@ -23,6 +23,11 @@ type dataSourceSummary struct {
 	IsDefault bool   `json:"isDefault"`
 }
 
+const (
+	DataSourceTypePrometheus = "prometheus"
+	DataSourceTypeLoki       = "loki"
+)
+
 func listDatasources(ctx context.Context, args ListDatasourcesParams) ([]dataSourceSummary, error) {
 	c := mcpgrafana.GrafanaClientFromContext(ctx)
 	resp, err := c.Datasources.GetDataSources()
@@ -70,18 +75,33 @@ var ListDatasources = mcpgrafana.MustTool(
 )
 
 type GetDatasourceByUIDParams struct {
-	UID string `json:"uid" jsonschema:"required,description=The uid of the datasource"`
+	UID  string `json:"uid" jsonschema:"required,description=The uid of the datasource"`
+	Type string `json:"type,omitempty" jsonschema:"description=The type of datasource"`
 }
 
 func getDatasourceByUID(ctx context.Context, args GetDatasourceByUIDParams) (*models.DataSource, error) {
 	c := mcpgrafana.GrafanaClientFromContext(ctx)
-	datasource, err := c.Datasources.GetDataSourceByUID(args.UID)
+	uid := args.UID
+	if strings.TrimSpace(uid) == "" {
+		if strings.TrimSpace(args.Type) == "" {
+			return nil, fmt.Errorf("datasource type cannot be empty when UID is not provided")
+		}
+		datasources, err := listDatasources(ctx, ListDatasourcesParams{Type: args.Type})
+		if err != nil {
+			return nil, fmt.Errorf("list datasources failed for type '%s': %w", args.Type, err)
+		}
+		if len(datasources) == 0 {
+			return nil, fmt.Errorf("no datasources found for type '%s'", args.Type)
+		}
+		uid = datasources[0].UID
+	}
+	datasource, err := c.Datasources.GetDataSourceByUID(uid)
 	if err != nil {
 		// Check if it's a 404 Not Found Error
 		if strings.Contains(err.Error(), "404") {
 			return nil, fmt.Errorf("datasource with UID '%s' not found. Please check if the datasource exists and is accessible", args.UID)
 		}
-		return nil, fmt.Errorf("get datasource by uid %s: %w", args.UID, err)
+		return nil, fmt.Errorf("get datasource by uid %s: %w", uid, err)
 	}
 	return datasource.Payload, nil
 }

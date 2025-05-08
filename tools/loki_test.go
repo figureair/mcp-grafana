@@ -3,6 +3,7 @@
 package tools
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,6 +60,24 @@ func TestLokiTools(t *testing.T) {
 		// but we can check that the structure is correct
 		// If we got logs, check that they have the expected structure
 		for _, entry := range result {
+			assert.NotEmpty(t, entry.Timestamp, "Log entry should have a timestamp")
+			assert.NotNil(t, entry.Labels, "Log entry should have labels")
+		}
+	})
+
+	t.Run("query loki logs with no uid", func(t *testing.T) {
+		ctx := newTestContext()
+		result, err := queryLokiLogs(ctx, QueryLokiLogsParams{
+			LogQL: `{container=~".+"}`,
+			Limit: 10,
+		})
+		require.NoError(t, err)
+
+		// We can't assert on specific log content as it will vary,
+		// but we can check that the structure is correct
+		// If we got logs, check that they have the expected structure
+		for _, entry := range result {
+			fmt.Println(entry)
 			assert.NotEmpty(t, entry.Timestamp, "Log entry should have a timestamp")
 			assert.NotNil(t, entry.Labels, "Log entry should have labels")
 		}
